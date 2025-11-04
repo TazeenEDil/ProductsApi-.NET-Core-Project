@@ -1,29 +1,62 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using ProductsApi.Data;
+using ProductsApi.Mapping;
 using ProductsApi.Repositories;
+using ProductsApi.Repositories.Interfaces;
 using ProductsApi.Services;
+using ProductsApi.Services.Interfaces;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers + Newtonsoft JSON
-builder.Services.AddControllers()
-    .AddNewtonsoftJson();
+// Controllers + JSON Patch
+builder.Services.AddControllers().AddNewtonsoftJson();
 
-// Add DbContext
-var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+// Database
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(conn));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register Repository + Service
+// Automapper
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+
+// Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-//  Swagger Auth Button
+// Services
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// JWT Config
+var jwt = builder.Configuration.GetSection("Jwt");
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwt["Issuer"],
+            ValidAudience = jwt["Audience"],
+            IssuerSigningKey = signingKey
+        };
+    });
+
+// Swagger + JWT Auth Button
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Enter token: Bearer {your token}",
+        Description = "Enter: Bearer {your token}",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -48,7 +81,6 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Using global exception handler
 app.UseExceptionHandler("/error");
 
 if (app.Environment.IsDevelopment())
@@ -62,4 +94,5 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();
