@@ -31,11 +31,18 @@ namespace Products.Infrastructure.Auth
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
+            // Determine role
+            var role = string.IsNullOrWhiteSpace(dto.Role) ? "User" : dto.Role.Trim();
+
+            // Validate role
+            if (role != "User" && role != "Admin")
+                throw new InvalidOperationException("Invalid role specified");
+
             var user = new User
             {
                 Username = dto.Username,
                 PasswordHash = passwordHash,
-                Role = "User"
+                Role = role
             };
 
             var createdUser = await _userRepository.CreateAsync(user);

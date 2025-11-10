@@ -5,7 +5,7 @@ using Products.Application.Interfaces.Services;
 using Products.Application.DTOs;
 using Products.Application.Interfaces;
 
-namespace ProductsApi.Controllers
+namespace Products.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

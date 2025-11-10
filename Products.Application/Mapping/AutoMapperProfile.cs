@@ -10,6 +10,7 @@ namespace Products.Application.Mapping
         {
             // Entity → DTO
             CreateMap<Product, ProductResponseDto>();
+            CreateMap<Product, ProductPatchDto>(); 
 
             // DTO → Entity
             CreateMap<ProductCreateDto, Product>();

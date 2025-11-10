@@ -18,7 +18,7 @@ namespace Products.Infrastructure.Repositories
             }
             catch (Exception)
             {
-                // Optionally log here
+                
                 throw;
             }
         }

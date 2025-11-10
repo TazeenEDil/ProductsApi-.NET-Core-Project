@@ -13,3 +13,4 @@ namespace Products.Application.DTOs.Auth
         public required string Role { get; set; }
     }
 }
+

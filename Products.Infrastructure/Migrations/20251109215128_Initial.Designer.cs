@@ -8,11 +8,11 @@ using Products.Infrastructure.Data;
 
 #nullable disable
 
-namespace ProductsApi.Migrations
+namespace Products.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251104153303_AddUsersTable")]
-    partial class AddUsersTable
+    [Migration("20251109215128_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,7 +24,7 @@ namespace ProductsApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ProductsApi.Models.Product", b =>
+            modelBuilder.Entity("Products.Domain.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -49,7 +49,7 @@ namespace ProductsApi.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("ProductsApi.Models.User", b =>
+            modelBuilder.Entity("Products.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
