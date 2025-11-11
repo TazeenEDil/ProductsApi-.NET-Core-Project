@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Products.Application.DTOs.Product;
-using Products.Application.Interfaces.Services;
-using Products.Application.DTOs;
-using Products.Application.Interfaces;
+using ProductsApi.DTOs;
+using ProductsApi.Services.Interfaces;
 
-namespace Products.Api.Controllers
+namespace ProductsApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -21,6 +19,7 @@ namespace Products.Api.Controllers
             _logger = logger;
         }
 
+       
         [HttpGet]
         public async Task<IActionResult> GetAllProducts()
         {
@@ -28,6 +27,7 @@ namespace Products.Api.Controllers
             return Ok(products);
         }
 
+        
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(int id)
         {
@@ -36,7 +36,7 @@ namespace Products.Api.Controllers
             return Ok(product);
         }
 
-        
+        // ADMIN-ONLY from here
 
         [HttpPost]
         [Authorize(Roles = "Admin")]

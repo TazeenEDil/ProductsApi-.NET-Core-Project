@@ -1,13 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Products.Application.DTOs.Auth;
-using Products.Application.Interfaces;
-using Products.Application.Interfaces.Services;
+using ProductsApi.DTOs.Auth;
+using ProductsApi.Services.Interfaces;
 
-namespace Products.Api.Controllers
+namespace ProductsApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -19,42 +17,40 @@ namespace Products.Api.Controllers
             _logger = logger;
         }
 
-        // Register (User or Admin)
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto dto)
         {
-            if (string.IsNullOrEmpty(dto.Role))
-            {
-                dto.Role = "User"; // default role
-            }
-            else if (dto.Role != "User" && dto.Role != "Admin")
-            {
-                return BadRequest(new { message = "Role must be either 'User' or 'Admin'" });
-            }
-
             try
             {
-                var result = await _authService.RegisterAsync(dto);
-                return Ok(result);
+                var created = await _authService.RegisterAsync(dto);
+                return Ok(created);
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogWarning(ex, "Registration failed");
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Registration error");
+                return StatusCode(500, "Internal server error");
             }
         }
 
-        // Login
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
         {
-            var result = await _authService.LoginAsync(dto);
-            if (result == null)
-                return Unauthorized(new { message = "Invalid credentials" });
-
-            return Ok(result);
+            try
+            {
+                var result = await _authService.LoginAsync(dto);
+                if (result == null) return Unauthorized("Invalid credentials");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Login error");
+                return StatusCode(500, "Internal server error");
+            }
         }
-
-        
-        
     }
 }
