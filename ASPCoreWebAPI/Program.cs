@@ -1,69 +1,72 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using ProductsApi.Data;
-using ProductsApi.Mapping;
-using ProductsApi.Repositories;
-using ProductsApi.Repositories.Interfaces;
-using ProductsApi.Services;
-using ProductsApi.Services.Interfaces;
+using Products.Application.Interfaces;
+using Products.Application.Interfaces.Persistence;
+using Products.Application.Interfaces.Services;
+using Products.Application.Services;
+using Products.Infrastructure.Auth;
+using Products.Infrastructure.Data;
+using Products.Infrastructure.Repositories;
+using AutoMapper;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers + JSON Patch
-builder.Services.AddControllers().AddNewtonsoftJson();
-
-// Database
+//Connection String & EF DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Automapper
-builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+//Controllers & JSON support
+builder.Services.AddControllers()
+       .AddNewtonsoftJson();  // For PATCH support
 
-// Repositories
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+//AutoMapper
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-// Services
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+//JWT Authentication Configuration
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("JWT Key not found in configuration!");
 
-// JWT Config
-var jwt = builder.Configuration.GetSection("Jwt");
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]));
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException("JWT Issuer not found!");
+
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException("JWT Audience not found!");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
+        var key = Encoding.UTF8.GetBytes(jwtKey);
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
+            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
-            IssuerSigningKey = signingKey
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(key)
         };
     });
 
-// Swagger + JWT Auth Button
-builder.Services.AddSwaggerGen(c =>
+// Swagger with JWT Authorization support
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
 {
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Enter: Bearer {your token}",
         Name = "Authorization",
+        Type = SecuritySchemeType.Http,     
+        Scheme = "Bearer",                     // This tells Swagger to use Bearer automatically
+        BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer"
+        Description = "Paste your JWT token here. The 'Bearer ' prefix will be added automatically."
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -74,14 +77,26 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
 
+
+// Add Application Services & Repositories 
+// Auth
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// Products
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
+//Build the app 
 var app = builder.Build();
 
-app.UseExceptionHandler("/error");
+//Middleware
+app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
 {
@@ -89,11 +104,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
+app.UseAuthentication();  
 app.UseAuthorization();
 
+// Optional global error handler
+app.UseExceptionHandler("/error");
+
+//Map Controllers
 app.MapControllers();
 
+// Run the App
 app.Run();

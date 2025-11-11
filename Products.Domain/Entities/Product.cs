@@ -1,6 +1,5 @@
-﻿namespace ProductsApi.Models
+﻿namespace Products.Domain.Entities
 {
-    
     public class Product
     {
         public int Id { get; set; }
