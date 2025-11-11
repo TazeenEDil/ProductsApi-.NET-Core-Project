@@ -5,7 +5,7 @@ using ProductsApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers + Newtonsoft JSON
+// Add services
 builder.Services.AddControllers()
     .AddNewtonsoftJson();
 
@@ -14,7 +14,7 @@ var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(conn));
 
-// Register Repository + Service
+// Register repositories and services
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
@@ -23,7 +23,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Using global exception handler
+// Global exception handler to route to ErrorController
 app.UseExceptionHandler("/error");
 
 if (app.Environment.IsDevelopment())

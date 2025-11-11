@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.JsonPatch;
-using ProductsApi.DTOs;
-using ProductsApi.Models;
+﻿using ProductsApi.Models;
 using ProductsApi.Repositories;
 
 namespace ProductsApi.Services
@@ -14,130 +12,64 @@ namespace ProductsApi.Services
             _repository = repository;
         }
 
-        public async Task<IEnumerable<ProductResponseDto>> GetAllProducts()
+        public async Task<IEnumerable<Product>> GetAllProductsAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var products = await _repository.GetAllAsync();
-                return products.Select(p => new ProductResponseDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.Price
-                });
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return await _repository.GetAllAsync(cancellationToken);
         }
 
-        public async Task<ProductResponseDto?> GetProductById(int id)
+        public async Task<Product?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var product = await _repository.GetByIdAsync(id);
-                if (product == null) return null;
-
-                return new ProductResponseDto
-                {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Description = product.Description,
-                    Price = product.Price
-                };
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return await _repository.GetByIdAsync(id, cancellationToken);
         }
 
-        public async Task<ProductResponseDto> CreateProduct(ProductDto dto)
+        public async Task<Product> CreateProductAsync(Product product, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var newProduct = new Product
-                {
-                    Name = dto.Name,
-                    Description = dto.Description,
-                    Price = dto.Price
-                };
-
-                var created = await _repository.AddAsync(newProduct);
-
-                return new ProductResponseDto
-                {
-                    Id = created.Id,
-                    Name = created.Name,
-                    Description = created.Description,
-                    Price = created.Price
-                };
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            await _repository.AddAsync(product, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+            return product;
         }
 
-        public async Task<bool> UpdateProduct(int id, ProductDto dto)
+        public async Task<bool> UpdateProductAsync(int id, Product updatedProduct, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var product = await _repository.GetByIdAsync(id);
-                if (product == null) return false;
+            var existing = await _repository.GetByIdAsync(id, cancellationToken);
+            if (existing == null) return false;
 
-                product.Name = dto.Name;
-                product.Description = dto.Description;
-                product.Price = dto.Price;
+            existing.Name = updatedProduct.Name;
+            existing.Description = updatedProduct.Description;
+            existing.Price = updatedProduct.Price;
 
-                return await _repository.UpdateAsync(product);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            _repository.Update(existing);
+            await _repository.SaveChangesAsync(cancellationToken);
+            return true;
         }
 
-        public async Task<bool> PatchProduct(int id, JsonPatchDocument<ProductPatchDto> patchDoc)
+        public async Task<bool> PatchProductAsync(int id, IDictionary<string, object> updates, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var product = await _repository.GetByIdAsync(id);
-                if (product == null) return false;
+            var product = await _repository.GetByIdAsync(id, cancellationToken);
+            if (product == null) return false;
 
-                var patchDto = new ProductPatchDto
+            foreach (var item in updates)
+            {
+                var property = typeof(Product).GetProperty(item.Key);
+                if (property != null)
                 {
-                    Name = product.Name,
-                    Description = product.Description,
-                    Price = product.Price
-                };
-
-                patchDoc.ApplyTo(patchDto);
-
-                product.Name = patchDto.Name ?? product.Name;
-                product.Description = patchDto.Description ?? product.Description;
-                product.Price = patchDto.Price ?? product.Price;
-
-                return await _repository.UpdateAsync(product);
+                    property.SetValue(product, Convert.ChangeType(item.Value, property.PropertyType));
+                }
             }
-            catch (Exception)
-            {
-                throw;
-            }
+
+            _repository.Update(product);
+            await _repository.SaveChangesAsync(cancellationToken);
+            return true;
         }
 
-        public async Task<bool> DeleteProduct(int id)
+        public async Task<bool> DeleteProductAsync(int id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                return await _repository.DeleteAsync(id);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            var product = await _repository.GetByIdAsync(id, cancellationToken);
+            if (product == null) return false;
+
+            _repository.Remove(product);
+            await _repository.SaveChangesAsync(cancellationToken);
+            return true;
         }
     }
 }

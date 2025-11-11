@@ -1,83 +1,60 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProductsApi.Data;
 using ProductsApi.Models;
+using System.Linq.Expressions;
 
 namespace ProductsApi.Repositories
 {
     public class ProductRepository : IProductRepository
     {
         private readonly AppDbContext _context;
+        private readonly DbSet<Product> _db;
 
         public ProductRepository(AppDbContext context)
         {
             _context = context;
+            _db = _context.Set<Product>();
         }
 
-        public async Task<IEnumerable<Product>> GetAllAsync()
+        public async Task AddAsync(Product entity, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                return await _context.Products.ToListAsync();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            await _db.AddAsync(entity, cancellationToken);
         }
 
-        public async Task<Product?> GetByIdAsync(int id)
+        public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                return await _context.Products.FindAsync(id);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return await _db.AsNoTracking().ToListAsync(cancellationToken);
         }
 
-        public async Task<Product> AddAsync(Product product)
+        public async Task<Product?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                await _context.Products.AddAsync(product);
-                await _context.SaveChangesAsync();
-                return product;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return await _db.FindAsync(new[] { id }, cancellationToken);
         }
 
-        public async Task<bool> UpdateAsync(Product product)
+        // strongly typed override
+        public async Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                _context.Products.Update(product);
-                return await _context.SaveChangesAsync() > 0;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return await _db.FindAsync(new object[] { id }, cancellationToken);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public void Remove(Product entity)
         {
-            try
-            {
-                var product = await GetByIdAsync(id);
-                if (product == null) return false;
+            _db.Remove(entity);
+        }
 
-                _context.Products.Remove(product);
-                return await _context.SaveChangesAsync() > 0;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+        public void Update(Product entity)
+        {
+            _db.Update(entity);
+        }
+
+        public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<IEnumerable<Product>> FindAsync(Expression<Func<Product, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            return await _db.Where(predicate).AsNoTracking().ToListAsync(cancellationToken);
         }
     }
 }

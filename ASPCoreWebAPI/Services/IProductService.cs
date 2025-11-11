@@ -1,12 +1,14 @@
-﻿using ProductsApi.DTOs;
-using Microsoft.AspNetCore.JsonPatch;
+﻿using ProductsApi.Models;
 
-public interface IProductService
+namespace ProductsApi.Services
 {
-    Task<IEnumerable<ProductResponseDto>> GetAllProducts();
-    Task<ProductResponseDto?> GetProductById(int id);
-    Task<ProductResponseDto> CreateProduct(ProductDto dto);
-    Task<bool> UpdateProduct(int id, ProductDto dto);
-    Task<bool> PatchProduct(int id, JsonPatchDocument<ProductPatchDto> patchDoc);
-    Task<bool> DeleteProduct(int id);
+    public interface IProductService
+    {
+        Task<IEnumerable<Product>> GetAllProductsAsync(CancellationToken cancellationToken = default);
+        Task<Product?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default);
+        Task<Product> CreateProductAsync(Product product, CancellationToken cancellationToken = default);
+        Task<bool> UpdateProductAsync(int id, Product updatedProduct, CancellationToken cancellationToken = default);
+        Task<bool> PatchProductAsync(int id, IDictionary<string, object> updates, CancellationToken cancellationToken = default);
+        Task<bool> DeleteProductAsync(int id, CancellationToken cancellationToken = default);
+    }
 }

@@ -1,11 +1,7 @@
-﻿using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using ProductsApi.DTOs;
-<<<<<<< HEAD
 using ProductsApi.Services;
-=======
-using ProductsApi.Services.Interfaces;
->>>>>>> parent of 78bd543 (Merge branch 'Clean-Architecture-Code-Layers')
 
 namespace ProductsApi.Controllers
 {
@@ -56,11 +52,6 @@ namespace ProductsApi.Controllers
             }
         }
 
-<<<<<<< HEAD
-=======
-        // ADMIN-ONLY from here
-
->>>>>>> parent of 78bd543 (Merge branch 'Clean-Architecture-Code-Layers')
         [HttpPost]
         public async Task<IActionResult> Create(ProductDto productDto)
         {
