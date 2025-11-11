@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ProductsApi.Data;
 using ProductsApi.Repositories;
 using ProductsApi.Services;
