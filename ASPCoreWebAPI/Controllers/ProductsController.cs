@@ -5,156 +5,78 @@ using ProductsApi.Services;
 
 namespace ProductsApi.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly ILogger<ProductsController> _logger;
         private readonly IProductService _service;
 
-        public ProductsController(ILogger<ProductsController> logger, IProductService service)
+        public ProductsController(IProductService service)
         {
-            _logger = logger;
             _service = service;
         }
 
        
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            try
-            {
-                return Ok(await _service.GetAllProducts());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving products");
-                return StatusCode(500, "Internal server error");
-            }
+            var products = await _service.GetAllProductsAsync();
+            return Ok(products);
         }
 
         
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<ActionResult<Product>> GetProduct(int id)
         {
-            try
-            {
-                var product = await _service.GetProductById(id);
-                if (product == null)
-                    return NotFound("Product not found");
+            var product = await _service.GetProductByIdAsync(id);
+            if (product == null)
+                return NotFound();
 
-                return Ok(product);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving product");
-                return StatusCode(500, "Internal server error");
-            }
+            return Ok(product);
         }
 
+        // POST: api/products
         [HttpPost]
-        public async Task<IActionResult> Create(ProductDto productDto)
+        public async Task<ActionResult<Product>> CreateProduct(Product product)
         {
-            try
-            {
-                var created = await _service.CreateProduct(productDto);
-                return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating product");
-                return BadRequest("Error adding product");
-            }
+            var created = await _service.CreateProductAsync(product);
+            return CreatedAtAction(nameof(GetProduct), new { id = created.Id }, created);
         }
 
+        // PUT: api/products/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, ProductDto productDto)
+        public async Task<IActionResult> UpdateProduct(int id, Product product)
         {
-            try
-            {
-                var result = await _service.UpdateProduct(id, productDto);
-                if (!result)
-                    return NotFound("Product not found");
+            var success = await _service.UpdateProductAsync(id, product);
 
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating product");
-                return StatusCode(500, "Internal server error");
-            }
+            if (!success)
+                return NotFound();
+
+            return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
-            {
-                var result = await _service.DeleteProduct(id);
-                if (!result)
-                    return NotFound("Product not found");
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting product");
-                return StatusCode(500, "Internal server error");
-            }
-        }
+        // PATCH: api/products/{id}
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchProduct(int id, [FromBody] JsonPatchDocument<ProductPatchDto> patchDoc)
+        public async Task<IActionResult> PatchProduct(int id, Dictionary<string, object> updates)
         {
-            if (patchDoc == null)
-                return BadRequest("Invalid patch document.");
+            var success = await _service.PatchProductAsync(id, updates);
 
-            try
-            {
-                // ✅ Check if product exists first
-                var existingProduct = await _service.GetProductById(id);
-                if (existingProduct == null)
-                    return NotFound("Product not found.");
+            if (!success)
+                return NotFound();
 
-                // ✅ Convert existing product into Patch DTO
-                var patchDto = new ProductPatchDto
-                {
-                    Name = existingProduct.Name,
-                    Description = existingProduct.Description,
-                    Price = existingProduct.Price
-                };
-
-                // ✅ Apply patch safely
-                patchDoc.ApplyTo(patchDto, error =>
-                {
-                    ModelState.AddModelError(error.Operation.path, error.ErrorMessage);
-                });
-
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                // ✅ Convert patched DTO back into normal update DTO
-                var updateDto = new ProductDto
-                {
-                    Name = patchDto.Name,
-                    Description = patchDto.Description,
-                    Price = patchDto.Price ?? existingProduct.Price
-                };
-
-                var success = await _service.UpdateProduct(id, updateDto);
-
-                if (!success)
-                    return StatusCode(500, "Failed to apply patch update.");
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal Server Error: {ex.Message}");
-            }
+            return NoContent();
         }
 
+        // DELETE: api/products/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var success = await _service.DeleteProductAsync(id);
 
+            if (!success)
+                return NotFound();
 
-
+            return NoContent();
+        }
     }
 }
