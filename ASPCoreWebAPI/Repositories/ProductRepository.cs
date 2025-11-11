@@ -1,26 +1,24 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ProductsApi.Data;
 using ProductsApi.Models;
+using ProductsApi.Repositories.Interfaces;
 
 namespace ProductsApi.Repositories
 {
     public class ProductRepository : IProductRepository
     {
         private readonly AppDbContext _context;
-
-        public ProductRepository(AppDbContext context)
-        {
-            _context = context;
-        }
+        public ProductRepository(AppDbContext context) => _context = context;
 
         public async Task<IEnumerable<Product>> GetAllAsync()
         {
             try
             {
-                return await _context.Products.ToListAsync();
+                return await _context.Products.AsNoTracking().ToListAsync();
             }
             catch (Exception)
             {
+                // Optionally log here
                 throw;
             }
         }
@@ -70,7 +68,6 @@ namespace ProductsApi.Repositories
             {
                 var product = await GetByIdAsync(id);
                 if (product == null) return false;
-
                 _context.Products.Remove(product);
                 return await _context.SaveChangesAsync() > 0;
             }
