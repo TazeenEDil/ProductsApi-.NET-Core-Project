@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
 using ProductsApi.DTOs;
 using ProductsApi.Models;
