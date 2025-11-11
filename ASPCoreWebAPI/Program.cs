@@ -1,14 +1,29 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+﻿using Microsoft.EntityFrameworkCore;
+using ProductsApi.Data;
+using ProductsApi.Repositories;
+using ProductsApi.Services;
 
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services
 builder.Services.AddControllers()
-       .AddNewtonsoftJson();
+    .AddNewtonsoftJson();
+
+// Add DbContext
+var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(conn));
+
+// Register repositories and services
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Centralized exception handling built-in
+// Global exception handler to route to ErrorController
 app.UseExceptionHandler("/error");
 
 if (app.Environment.IsDevelopment())
@@ -19,5 +34,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();
