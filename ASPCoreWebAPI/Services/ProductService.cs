@@ -1,92 +1,143 @@
-using AutoMapper;
-using Microsoft.AspNetCore.JsonPatch;
+﻿using Microsoft.AspNetCore.JsonPatch;
 using ProductsApi.DTOs;
 using ProductsApi.Models;
-using ProductsApi.Repositories.Interfaces;
-using ProductsApi.Services.Interfaces;
+using ProductsApi.Repositories;
 
 namespace ProductsApi.Services
 {
-   
     public class ProductService : IProductService
     {
-        private readonly IProductRepository _productRepository;
-        private readonly IMapper _mapper;
+        private readonly IProductRepository _repository;
 
-        public ProductService(IProductRepository productRepository, IMapper mapper)
+        public ProductService(IProductRepository repository)
         {
-            _productRepository = productRepository;
-            _mapper = mapper;
+            _repository = repository;
         }
 
-        public async Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync()
+        public async Task<IEnumerable<ProductResponseDto>> GetAllProducts()
         {
             try
             {
-                var products = await _productRepository.GetAllAsync();
-                return _mapper.Map<IEnumerable<ProductResponseDto>>(products);
+                var products = await _repository.GetAllAsync();
+                return products.Select(p => new ProductResponseDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price
+                });
             }
-            catch { throw; }
-        }
-
-        public async Task<ProductResponseDto?> GetProductByIdAsync(int id)
-        {
-            try
+            catch (Exception)
             {
-                var product = await _productRepository.GetByIdAsync(id);
-                return product == null ? null : _mapper.Map<ProductResponseDto>(product);
+                throw;
             }
-            catch { throw; }
         }
 
-        public async Task<ProductResponseDto> CreateProductAsync(ProductCreateDto dto)
+        public async Task<ProductResponseDto?> GetProductById(int id)
         {
             try
             {
-                var product = _mapper.Map<Product>(dto);
-                var created = await _productRepository.AddAsync(product);
-                return _mapper.Map<ProductResponseDto>(created);
+                var product = await _repository.GetByIdAsync(id);
+                if (product == null) return null;
+
+                return new ProductResponseDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Description = product.Description,
+                    Price = product.Price
+                };
             }
-            catch { throw; }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-        public async Task<bool> UpdateProductAsync(int id, ProductCreateDto dto)
+        public async Task<ProductResponseDto> CreateProduct(ProductDto dto)
         {
             try
             {
-                var product = await _productRepository.GetByIdAsync(id);
+                var newProduct = new Product
+                {
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Price = dto.Price
+                };
+
+                var created = await _repository.AddAsync(newProduct);
+
+                return new ProductResponseDto
+                {
+                    Id = created.Id,
+                    Name = created.Name,
+                    Description = created.Description,
+                    Price = created.Price
+                };
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateProduct(int id, ProductDto dto)
+        {
+            try
+            {
+                var product = await _repository.GetByIdAsync(id);
                 if (product == null) return false;
 
-                _mapper.Map(dto, product); // maps updated fields
-                return await _productRepository.UpdateAsync(product);
+                product.Name = dto.Name;
+                product.Description = dto.Description;
+                product.Price = dto.Price;
+
+                return await _repository.UpdateAsync(product);
             }
-            catch { throw; }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-        public async Task<bool> PatchProductAsync(int id, JsonPatchDocument<ProductPatchDto> patchDoc)
+        public async Task<bool> PatchProduct(int id, JsonPatchDocument<ProductPatchDto> patchDoc)
         {
             try
             {
-                var product = await _productRepository.GetByIdAsync(id);
+                var product = await _repository.GetByIdAsync(id);
                 if (product == null) return false;
 
-                // create patch DTO from entity
-                var patchDto = _mapper.Map<ProductPatchDto>(product);
+                var patchDto = new ProductPatchDto
+                {
+                    Name = product.Name,
+                    Description = product.Description,
+                    Price = product.Price
+                };
 
-                // apply patch (errors handled in controller via ModelState)
                 patchDoc.ApplyTo(patchDto);
 
-                // map patched DTO back to entity
-                _mapper.Map(patchDto, product);
-                return await _productRepository.UpdateAsync(product);
+                product.Name = patchDto.Name ?? product.Name;
+                product.Description = patchDto.Description ?? product.Description;
+                product.Price = patchDto.Price ?? product.Price;
+
+                return await _repository.UpdateAsync(product);
             }
-            catch { throw; }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-        public async Task<bool> DeleteProductAsync(int id)
+        public async Task<bool> DeleteProduct(int id)
         {
-            try { return await _productRepository.DeleteAsync(id); }
-            catch { throw; }
+            try
+            {
+                return await _repository.DeleteAsync(id);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace ProductsApi.DTOs
 {
-    public partial class ProductBase
+    public class ProductPatchDto
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
